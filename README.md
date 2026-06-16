@@ -1,3 +1,12 @@
+# 입력된 자료
+
+<img width="2067" height="2365" alt="gd1" src="https://github.com/user-attachments/assets/616c6692-68aa-4691-9dde-9a194c2cc1b3" />
+
+# 아웃풋 자료
+
+<img width="2557" height="2841" alt="그림2" src="https://github.com/user-attachments/assets/d606c943-7d91-4665-9ae8-35f23491ed4e" />
+
+
 # gdcd-slide-maker
 
 A [Claude](https://claude.com/claude-code) **Skill** that turns a minimally-filled
