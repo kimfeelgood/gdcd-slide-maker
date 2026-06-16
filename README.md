@@ -11,7 +11,7 @@
 
 A [Claude](https://claude.com/claude-code) **Skill** that turns a minimally-filled
 PowerPoint (`.pptx`) into a finished, **interactive educational slide deck** — a
-self-contained HTML deck in the *zzanmul* design system (POSCO-blue neumorphic
+self-contained HTML deck in the design system (POSCO-blue neumorphic
 tiles, Microsoft Fluent depth, bento-grid layout) with dynamic page transitions
 and click-to-reveal interactions.
 
