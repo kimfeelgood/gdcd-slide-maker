@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{DECK_TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ===== zzanmul tokens (POSCO-blue neumorphic base) ===== */
+:root{--base:#EAEEF4;--shadow:#C7CFDB;--light:#FFFFFF;--primary:#004F91;--accent:#0078D4;--cyan:#00A8E5;--ink:#241F21;--muted:#6E7681;--on-blue:#FFFFFF;--r-tile:22px;--gap:20px;--pad:26px;--ease:cubic-bezier(.22,.61,.36,1);}
+*{box-sizing:border-box;margin:0;}
+body{background:var(--base);color:var(--ink);overflow:hidden;font-family:'Segoe UI Variable','Segoe UI','Noto Sans KR',system-ui,sans-serif;word-break:keep-all;-webkit-font-smoothing:antialiased;}
+.deck{position:fixed;inset:0;perspective:1800px;overflow:hidden;}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:5vh 5vw;opacity:0;pointer-events:none;transition:transform .62s var(--ease),opacity .45s ease;backface-visibility:hidden;}
+.slide.active{opacity:1;pointer-events:auto;transform:none;z-index:3;}
+.slide.enter{z-index:3;}.slide.exit{z-index:2;}
+/* page transition: flip (default). depth/slide/zoom also available — see references/interactions.md */
+[data-transition="flip"][data-dir="fwd"] .slide.enter{transform:rotateY(38deg) translateX(42%);}
+[data-transition="flip"][data-dir="fwd"] .slide.exit{transform:rotateY(-38deg) translateX(-42%);}
+[data-transition="flip"][data-dir="back"] .slide.enter{transform:rotateY(-38deg) translateX(-42%);}
+[data-transition="flip"][data-dir="back"] .slide.exit{transform:rotateY(38deg) translateX(42%);}
+[data-transition="depth"][data-dir="fwd"] .slide.enter{transform:translate3d(0,9%,0) scale(.92);}
+[data-transition="depth"][data-dir="fwd"] .slide.exit{transform:scale(.86);}
+[data-transition="depth"][data-dir="back"] .slide.enter{transform:scale(.86);}
+[data-transition="depth"][data-dir="back"] .slide.exit{transform:translate3d(0,9%,0) scale(.92);}
+@media (prefers-reduced-motion:reduce){.slide{transition:opacity .2s ease;}.slide.enter,.slide.exit{transform:none!important;}.flip-inner{transition:none!important;}}
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);grid-auto-rows:minmax(150px,auto);width:100%;max-width:1240px;}
+.tile{background:var(--base);border-radius:var(--r-tile);padding:var(--pad);box-shadow:8px 8px 18px var(--shadow),-8px -8px 18px var(--light);display:flex;flex-direction:column;justify-content:center;}
+.tile.hero{background:var(--primary);color:var(--on-blue);box-shadow:8px 8px 22px #00305A,-8px -8px 22px #1F69B0;}
+.col-3{grid-column:span 3;}.col-4{grid-column:span 4;}.col-5{grid-column:span 5;}.col-6{grid-column:span 6;}.col-7{grid-column:span 7;}.col-8{grid-column:span 8;}.col-12{grid-column:span 12;}.row-2{grid-row:span 2;}
+.headwrap{grid-column:span 12;padding:2px 6px 2px;min-height:0;}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);margin-bottom:10px;}
+h1{font-size:38px;font-weight:700;line-height:1.2;color:var(--on-blue);letter-spacing:-.02em;}
+h1 .hl{color:#7FD2F5;}
+h2{font-size:28px;font-weight:700;line-height:1.25;color:var(--primary);letter-spacing:-.02em;}
+h2 .cy{color:var(--accent);}
+.tile h3{font-size:20px;font-weight:700;color:var(--primary);margin-bottom:10px;}
+.tile p{font-size:15px;line-height:1.7;color:var(--ink);}.hero p{color:#EAF3FB;}.hero .eyebrow{color:#9FD4F2;}
+.chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:2px;}
+.chip{font-size:13.5px;font-weight:600;color:var(--ink);padding:9px 14px;border-radius:13px;box-shadow:inset 3px 3px 6px var(--shadow),inset -3px -3px 6px var(--light);}
+.chip b{color:var(--primary);}
+.kicker{margin-top:14px;font-size:14.5px;line-height:1.6;color:var(--ink);}.kicker b{color:var(--accent);}
+.statline{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid #DCE2EA;}
+.statline:last-child{border-bottom:0;}
+.statline .nm{flex:0 0 64px;font-weight:700;color:var(--primary);font-size:15px;}
+.statline .val{font-size:15px;color:var(--ink);}.statline .mul{margin-left:auto;font-size:13px;font-weight:700;color:var(--accent);}
+.num{font-size:34px;font-weight:700;color:var(--primary);line-height:1.05;letter-spacing:-.02em;}
+.num .u{font-size:16px;color:var(--muted);font-weight:600;}
+.label{font-size:13px;color:var(--muted);margin-top:7px;font-weight:500;}
+
+/* ===== in-place flip tile (박스N -> 노출N, 타일 자리에서 뒤집힘) ===== */
+.flipbox{perspective:1300px;cursor:pointer;min-height:340px;}
+.flipbox:focus-visible{outline:3px solid var(--accent);outline-offset:4px;border-radius:var(--r-tile);}
+.flip-inner{position:relative;width:100%;height:100%;min-height:inherit;transition:transform .62s var(--ease);transform-style:preserve-3d;}
+.flipbox.flipped .flip-inner{transform:rotateY(180deg);}
+.flip-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--r-tile);background:var(--base);box-shadow:8px 8px 18px var(--shadow),-8px -8px 18px var(--light);overflow:hidden;}
+.flip-face.front{padding:var(--pad);display:flex;flex-direction:column;justify-content:center;gap:18px;transition:box-shadow .18s ease;}
+.flipbox:hover .flip-face.front{box-shadow:10px 10px 22px var(--shadow),-10px -10px 22px var(--light);}
+.flip-face.front .bxicon{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;color:var(--accent);font-size:23px;font-weight:700;background:var(--base);box-shadow:inset 3px 3px 6px var(--shadow),inset -3px -3px 6px var(--light);}
+.flip-face.front .bxlabel{display:block;font-size:18px;font-weight:700;color:var(--primary);}
+.flip-face.front .bxsub{display:block;font-size:13px;color:var(--muted);margin-top:4px;}
+.flip-face.back{transform:rotateY(180deg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:8px;}
+.flip-face.back img{max-width:100%;max-height:82%;object-fit:contain;border-radius:12px;}
+.flip-face.back .video-wrap{height:90%;aspect-ratio:9/16;max-width:100%;border-radius:14px;overflow:hidden;box-shadow:4px 4px 12px var(--shadow);}
+.flip-face.back .video-wrap.wide{aspect-ratio:16/9;height:auto;width:100%;}
+.flip-face.back .video-wrap iframe{width:100%;height:100%;border:0;display:block;}
+.flip-face.back .reveal-cap{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.4;}
+.flip-face.back .reflip{position:absolute;top:10px;right:10px;z-index:2;width:34px;height:34px;border:none;cursor:pointer;border-radius:50%;background:var(--base);color:var(--primary);font-size:16px;font-weight:700;box-shadow:3px 3px 7px var(--shadow),-3px -3px 7px var(--light);}
+
+.dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:20;}
+.dots button{width:11px;height:11px;border:none;padding:0;cursor:pointer;border-radius:50%;background:var(--base);box-shadow:inset 2px 2px 4px var(--shadow),inset -2px -2px 4px var(--light);}
+.dots button.on{background:var(--accent);box-shadow:2px 2px 5px var(--shadow),-2px -2px 5px var(--light);}
+.nav-arrow{position:fixed;bottom:26px;z-index:20;width:50px;height:50px;border:none;cursor:pointer;border-radius:16px;background:var(--base);color:var(--primary);font-size:20px;box-shadow:6px 6px 14px var(--shadow),-6px -6px 14px var(--light);}
+.nav-arrow.prev{right:90px;}.nav-arrow.next{right:30px;}.nav-arrow:disabled{opacity:.4;}
+.pg{position:fixed;left:30px;bottom:30px;z-index:20;font-size:12px;letter-spacing:.16em;color:var(--muted);font-weight:600;}
+/* ===== progress bar + chapter ticks ===== */
+.progress{position:fixed;left:0;right:0;bottom:0;height:5px;background:var(--shadow);z-index:18;}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--primary));transition:width .5s var(--ease);}
+.progress-ticks{position:fixed;left:0;right:0;bottom:0;height:5px;z-index:19;pointer-events:none;}
+.progress-ticks i{position:absolute;top:0;width:2px;height:5px;background:var(--light);opacity:.75;}
+/* ===== cover slide ===== */
+.cover-eyebrow{font-size:14px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);}
+.cover-title{font-size:60px;font-weight:800;line-height:1.12;color:var(--primary);letter-spacing:-.03em;margin:18px 0;}
+.cover-title .hl{color:var(--accent);}
+.cover-sub{font-size:18px;color:var(--ink);line-height:1.7;}
+.cover-meta{margin-top:30px;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.05em;}
+.cover-meta b{color:var(--primary);}
+/* ===== chapter divider ===== */
+.chapter-no{font-size:118px;font-weight:800;color:var(--accent);line-height:1;}
+.chapter-title{font-size:44px;font-weight:800;color:var(--primary);letter-spacing:-.02em;margin-top:4px;}
+.chapter-sub{font-size:16px;color:var(--muted);margin-top:14px;max-width:660px;line-height:1.7;}
+/* ===== TOC / agenda ===== */
+.toc{display:flex;flex-direction:column;gap:14px;width:100%;max-width:920px;}
+.toc-row{display:flex;align-items:center;gap:18px;padding:16px 22px;border-radius:16px;background:var(--base);box-shadow:6px 6px 14px var(--shadow),-6px -6px 14px var(--light);}
+.toc-row .tn{flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;color:var(--accent);background:var(--base);box-shadow:inset 3px 3px 6px var(--shadow),inset -3px -3px 6px var(--light);}
+.toc-row .tt{font-size:18px;font-weight:700;color:var(--primary);}
+.toc-row .td{font-size:13px;color:var(--muted);margin-left:auto;}
+/* ===== presenter mode (P key) ===== */
+#presenter{position:fixed;inset:0;z-index:60;background:rgba(18,30,46,.94);color:#fff;display:none;grid-template-columns:1.05fr .95fr;gap:28px;padding:5vh 5vw 7vh;}
+#presenter.on{display:grid;}
+#presenter .pz-now,#presenter .pz-next{background:rgba(255,255,255,.06);border-radius:18px;padding:24px;display:flex;flex-direction:column;min-height:0;}
+#presenter .pz-label{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#7FD2F5;margin-bottom:12px;}
+#presenter .pz-curtitle{font-size:26px;font-weight:800;line-height:1.3;}
+#presenter .pz-timer{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums;}
+#presenter .pz-clock{font-size:13px;color:#9FB3C8;margin-top:2px;}
+#presenter .pz-nexttitle{font-size:18px;font-weight:700;margin-bottom:12px;}
+#presenter .pz-prevwrap{flex:1;position:relative;overflow:hidden;border-radius:12px;background:var(--base);min-height:0;}
+#presenter .pz-scaler{position:absolute;top:0;left:0;transform-origin:top left;width:1240px;}
+#presenter .pz-hint{position:fixed;left:5vw;bottom:20px;font-size:12px;color:#9FB3C8;}
+@media (max-width:860px){h1{font-size:28px;}h2{font-size:21px;}.cover-title{font-size:38px;}.chapter-no{font-size:80px;}.chapter-title{font-size:30px;}.col-3,.col-4,.col-5,.col-6,.col-7,.col-8{grid-column:span 12;}.row-2{grid-row:auto;}#presenter{grid-template-columns:1fr;}}
+</style></head>
+
+<body>
+<!--
+  HOW TO FILL THIS TEMPLATE (gdcd-slide-maker)
+  - Each slide is  <section class="slide" data-fp="FINGERPRINT">  — copy the fp from
+    manifest.json. The fp is how incremental rebuilds find already-done slides and
+    leave them untouched, so ALWAYS stamp it.
+  - Box+reveal as an IN-PLACE FLIP TILE (default): a .flipbox col-5 row-2 with a
+    .front (＋ image / ▶ video, label + sub — NO "tap to flip" hint) and a .back
+    holding the 노출 asset (img / video-wrap iframe[data-src] / text).
+  - Default page transition is flip (set on .deck). Replace every {{...}} and the
+    demo slides. See references/interactions.md for video & alternative patterns,
+    references/incremental.md for the keep-completed-slides workflow.
+-->
+
+<div class="deck" id="deck" data-transition="flip">
+
+  <!-- ===== DEMO SLIDE (replace; keep data-fp from manifest) ===== -->
+  <section class="slide" data-fp="{{FP}}">
+    <div class="bento">
+      <div class="headwrap">
+        <div class="eyebrow">{{과목 · N강}}</div>
+        <h2>{{이 슬라이드의 핵심 명제}} <span class="cy">{{강조}}</span></h2>
+      </div>
+      <div class="tile hero col-7">
+        <div class="eyebrow">{{눈길 끄는 라벨}}</div>
+        <h1>{{큰 제목 첫 줄}}<br><span class="hl">{{둘째 줄 강조}}</span></h1>
+        <p style="margin-top:16px;">{{한두 줄 설명}}</p>
+      </div>
+
+      <!-- 박스1 -> 노출1 (in-place flip) -->
+      <div class="flipbox col-5 row-2" data-reveal="1" tabindex="0" role="button" aria-label="{{설명}} 뒤집어 보기">
+        <div class="flip-inner">
+          <div class="flip-face front">
+            <span class="bxicon">＋</span>
+            <span><span class="bxlabel">{{박스1 라벨}}</span><span class="bxsub">{{보조 설명}}</span></span>
+          </div>
+          <div class="flip-face back">
+            <button class="reflip" aria-label="되돌리기">↩</button>
+            <img src="media/s1_reveal1.png" alt="{{노출1}}">
+            <div class="reveal-cap">{{캡션 · 출처}}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tile col-7">
+        <h3>{{소제목}}</h3>
+        <p>{{보충 내용}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIDEO/URL reveal back-face variant (lazy-load + stops on close):
+    <div class="flip-face back">
+      <button class="reflip">↩</button>
+      <div class="video-wrap"><iframe data-src="https://www.youtube.com/embed/VIDEO_ID?rel=0" allow="encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div>
+    </div>
+    (use class="video-wrap wide" for 16:9; bare 9:16 for Shorts) -->
+
+</div>
+
+<div class="dots" id="dots"></div>
+<button class="nav-arrow prev" id="prevBtn" aria-label="이전">←</button>
+<button class="nav-arrow next" id="nextBtn" aria-label="다음">→</button>
+<div class="pg" id="pg"></div>
+<div class="progress"><div class="progress-fill" id="progFill"></div></div>
+<div class="progress-ticks" id="progTicks"></div>
+
+<!-- presenter mode (toggle with P) -->
+<div id="presenter">
+  <div class="pz-now">
+    <div class="pz-label">현재 · <span id="pzPage"></span></div>
+    <div class="pz-curtitle" id="pzCur"></div>
+    <div style="margin-top:auto">
+      <div class="pz-timer" id="pzTimer">00:00</div>
+      <div class="pz-clock" id="pzClock"></div>
+    </div>
+  </div>
+  <div class="pz-next">
+    <div class="pz-label">다음 슬라이드</div>
+    <div class="pz-nexttitle" id="pzNextTitle"></div>
+    <div class="pz-prevwrap" id="pzPreview"></div>
+  </div>
+  <div class="pz-hint">P 발표자 모드 · F 전체화면 · R 타이머 리셋 · ← → 이동</div>
+</div>
+
+<script>
+(function(){
+  const deck=document.getElementById('deck');const slides=[...deck.querySelectorAll('.slide')];
+  const dotsBox=document.getElementById('dots');const pg=document.getElementById('pg');let cur=0,animating=false;
+  const pz=document.getElementById('presenter');let pzOn=false,t0=null,timerInt=null;
+  slides.forEach((_,i)=>{const b=document.createElement('button');b.onclick=()=>go(i);dotsBox.appendChild(b);});
+  const dots=[...dotsBox.children];
+  const progFill=document.getElementById('progFill');
+  function paint(){dots.forEach((d,i)=>d.classList.toggle('on',i===cur));pg.textContent=String(cur+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');document.getElementById('prevBtn').disabled=cur===0;document.getElementById('nextBtn').disabled=cur===slides.length-1;if(progFill)progFill.style.width=((cur+1)/slides.length*100)+'%';renderPresenter();}
+  // chapter ticks on the progress bar (at cover/chapter slides)
+  (function(){const t=document.getElementById('progTicks');if(!t||slides.length<2)return;slides.forEach((s,i)=>{if(s.classList.contains('chapter')||s.classList.contains('cover')){const x=document.createElement('i');x.style.left=(i/(slides.length-1)*100)+'%';t.appendChild(x);}});})();
+  slides[0].classList.add('active');paint();
+  function setFlip(f,on){f.classList.toggle('flipped',on);const ifr=f.querySelector('iframe');if(ifr){if(on){if(!ifr.src&&ifr.dataset.src)ifr.src=ifr.dataset.src;}else if(ifr.src){ifr.src='';}}}
+  function unflipAll(){deck.querySelectorAll('.flipbox.flipped').forEach(f=>setFlip(f,false));}
+  function go(n){n=Math.max(0,Math.min(slides.length-1,n));if(n===cur||animating)return;unflipAll();const dir=n>cur?'fwd':'back';deck.dataset.dir=dir;const o=slides[cur],w=slides[n];animating=true;o.classList.remove('active');o.classList.add('exit');w.classList.add('enter');void w.offsetWidth;w.classList.add('active');w.classList.remove('enter');const done=()=>{o.classList.remove('exit');animating=false;w.removeEventListener('transitionend',done);};w.addEventListener('transitionend',done);setTimeout(()=>{if(animating){o.classList.remove('exit');animating=false;}},900);cur=n;paint();}
+  document.getElementById('prevBtn').onclick=()=>go(cur-1);document.getElementById('nextBtn').onclick=()=>go(cur+1);
+  addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['ArrowRight','PageDown'].includes(e.key)){go(cur+1);e.preventDefault();}else if(['ArrowLeft','PageUp'].includes(e.key)){go(cur-1);e.preventDefault();}else if(e.key==='Escape'){unflipAll();if(pzOn)togglePresenter();}else if(k==='p'){togglePresenter();e.preventDefault();}else if(k==='f'){fullscreen();e.preventDefault();}else if(k==='r'&&pzOn){t0=Date.now();tick();e.preventDefault();}});
+  let sx=0,sy=0;addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+  addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy))go(cur+(dx<0?1:-1));},{passive:true});
+  deck.querySelectorAll('.flipbox').forEach(f=>{
+    f.addEventListener('click',e=>{e.stopPropagation();setFlip(f,!f.classList.contains('flipped'));});
+    f.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setFlip(f,!f.classList.contains('flipped'));}});
+  });
+
+  /* ===== presenter mode ===== */
+  function fmt(ms){const s=Math.max(0,Math.floor(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+  function tick(){if(!pz)return;if(t0!=null)document.getElementById('pzTimer').textContent=fmt(Date.now()-t0);document.getElementById('pzClock').textContent=new Date().toLocaleTimeString();}
+  function titleOf(sec){const h=sec.querySelector('.cover-title,.chapter-title,h1,h2');return h?h.textContent.trim().replace(/\s+/g,' '):'슬라이드';}
+  function renderPresenter(){if(!pz||!pzOn)return;document.getElementById('pzPage').textContent=(cur+1)+' / '+slides.length;document.getElementById('pzCur').textContent=titleOf(slides[cur]);const nx=slides[cur+1];document.getElementById('pzNextTitle').textContent=nx?titleOf(nx):'— 마지막 슬라이드 —';const wrap=document.getElementById('pzPreview');wrap.innerHTML='';if(nx){const sc=document.createElement('div');sc.className='pz-scaler';const b=nx.querySelector('.bento');if(b)sc.appendChild(b.cloneNode(true));wrap.appendChild(sc);requestAnimationFrame(()=>{sc.style.transform='scale('+(wrap.clientWidth/1240)+')';});}}
+  function togglePresenter(){if(!pz)return;pzOn=!pzOn;pz.classList.toggle('on',pzOn);if(pzOn){if(t0==null)t0=Date.now();if(!timerInt)timerInt=setInterval(tick,500);tick();renderPresenter();}}
+  function fullscreen(){const d=document.documentElement;if(!document.fullscreenElement){(d.requestFullscreen||d.webkitRequestFullscreen||function(){}).call(d);}else{document.exitFullscreen&&document.exitFullscreen();}}
+})();
+</script>
+</body></html>
